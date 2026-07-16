@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Tirage au sort</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #071b1e;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #eafdff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+  }
+  h1 { margin-bottom: 18px; text-shadow: 0 0 10px rgba(77,227,234,0.7); }
+  select, button {
+    font-size: 15px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid #4de3ea;
+    background: #0a2226;
+    color: #eafdff;
+    margin: 6px;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .layout {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+    margin-top: 20px;
+  }
+  .wheel-wrap {
+    position: relative;
+    width: 380px;
+    height: 380px;
+  }
+  #wheel {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 6px solid #4de3ea;
+    box-shadow: 0 0 30px rgba(77,227,234,0.5);
+    transition: transform 5s cubic-bezier(0.13, 0.82, 0.13, 1);
+  }
+  .pointer {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 24px solid #ffffff;
+    filter: drop-shadow(0 0 6px rgba(77,227,234,0.8));
+    z-index: 5;
+  }
+  .odds-panel {
+    width: 280px;
+    background: rgba(77,227,234,0.06);
+    border: 1px solid rgba(77,227,234,0.3);
+    border-radius: 10px;
+    padding: 14px 18px;
+    max-height: 380px;
+    overflow-y: auto;
+  }
+  .odds-panel h3 {
+    font-size: 13px;
+    color: #8fd9de;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .odds-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(77,227,234,0.12);
+  }
+  .odds-name { color: #eafdff; }
+  .odds-pct { color: #4de3ea; font-weight: 700; }
+  .result {
+    font-size: 22px;
+    font-weight: 800;
+    color: #4de3ea;
+    text-shadow: 0 0 12px rgba(77,227,234,0.7);
+    margin-top: 24px;
+    min-height: 32px;
+  }
+  .info { font-size: 13px; color: #8fd9de; margin-top: 6px; text-align: center; max-width: 420px; }
+</style>
+</head>
+<body>
+  <h1>🎡 Tirage au sort</h1>
+
+  <div>
+    <label>Palier à tirer : </label>
+    <select id="palierSelect"></select>
+    <button id="loadOddsBtn">Afficher les chances</button>
+    <button id="drawBtn" disabled>Lancer le tirage</button>
+  </div>
+
+  <div class="layout">
+    <div class="wheel-wrap">
+      <div class="pointer"></div>
+      <div id="wheel"></div>
+    </div>
+    <div class="odds-panel">
+      <h3>Chances actuelles</h3>
+      <div id="oddsList">Clique sur "Afficher les chances" pour voir les probabilités en direct avant de lancer le tirage.</div>
+    </div>
+  </div>
+
+  <div class="result" id="result"></div>
+  <div class="info" id="info"></div>
+
+  <script>
+    let currentPool = [];
+
+    async function loadPendingPaliers() {
+      const res = await fetch("/api/paliers/pending");
+      const { paliers } = await res.json();
+      const select = document.getElementById("palierSelect");
+      select.innerHTML = paliers.map(p => `<option value="${p.ordre}">Palier ${p.ordre} — ${p.seuil_abonnes} abonnés — ${p.lot_description}</option>`).join("");
+      const hasPending = paliers.length > 0;
+      document.getElementById("loadOddsBtn").disabled = !hasPending;
+      if (!hasPending) {
+        document.getElementById("info").textContent = "Aucun palier en attente de tirage pour le moment.";
+      }
+    }
+
+    function renderOdds(pool) {
+      const list = document.getElementById("oddsList");
+      if (pool.length === 0) {
+        list.innerHTML = "Aucun participant éligible pour ce palier.";
+        document.getElementById("drawBtn").disabled = true;
+        return;
+      }
+      list.innerHTML = pool.map(p => `
+        <div class="odds-row">
+          <span class="odds-name">${p.username}</span>
+          <span class="odds-pct">${p.probabilite_pct}%</span>
+        </div>
+      `).join("");
+      document.getElementById("drawBtn").disabled = false;
+    }
+
+    function buildWheel(pool) {
+      const total = pool.reduce((s, p) => s + p.weight, 0);
+      let acc = 0;
+      const colors = ["#0fa8b3", "#4de3ea", "#0a5a60", "#7be8ec", "#0c3438", "#a9f3f6"];
+      const stops = pool.map((p, i) => {
+        const start = (acc / total) * 360;
+        acc += p.weight;
+        const end = (acc / total) * 360;
+        return `${colors[i % colors.length]} ${start}deg ${end}deg`;
+      });
+      document.getElementById("wheel").style.background = `conic-gradient(${stops.join(", ")})`;
+    }
+
+    async function loadOdds() {
+      const res = await fetch("/api/candidates");
+      const { pool } = await res.json();
+      currentPool = pool;
+      renderOdds(pool);
+      if (pool.length > 0) buildWheel(pool);
+      document.getElementById("result").textContent = "";
+      document.getElementById("info").textContent = "";
+    }
+
+    function angleForWinner(pool, winnerUsername) {
+      const total = pool.reduce((s, p) => s + p.weight, 0);
+      let acc = 0;
+      for (const p of pool) {
+        const start = acc;
+        acc += p.weight;
+        if (p.username === winnerUsername) {
+          const mid = (start + acc) / 2;
+          return (mid / total) * 360;
+        }
+      }
+      return 0;
+    }
+
+    async function draw() {
+      const ordre = document.getElementById("palierSelect").value;
+      document.getElementById("drawBtn").disabled = true;
+      document.getElementById("loadOddsBtn").disabled = true;
+      document.getElementById("result").textContent = "";
+      document.getElementById("info").textContent = "";
+
+      const res = await fetch(`/api/paliers/${ordre}/draw`, { method: "POST" });
+      const data = await res.json();
+
+      if (data.error) {
+        document.getElementById("info").textContent = "Erreur : " + data.error;
+        document.getElementById("drawBtn").disabled = false;
+        document.getElementById("loadOddsBtn").disabled = false;
+        return;
+      }
+
+      const targetAngle = angleForWinner(currentPool, data.winner);
+      const spins = 6;
+      const finalRotation = spins * 360 + (360 - targetAngle);
+
+      const wheel = document.getElementById("wheel");
+      wheel.style.transition = "none";
+      wheel.style.transform = "rotate(0deg)";
+      void wheel.offsetWidth;
+      wheel.style.transition = "transform 5s cubic-bezier(0.13, 0.82, 0.13, 1)";
+      wheel.style.transform = `rotate(${finalRotation}deg)`;
+
+      setTimeout(() => {
+        document.getElementById("result").textContent = `🏆 ${data.winner}`;
+        loadPendingPaliers();
+        document.getElementById("loadOddsBtn").disabled = false;
+      }, 5200);
+    }
+
+    document.getElementById("loadOddsBtn").addEventListener("click", loadOdds);
+    document.getElementById("drawBtn").addEventListener("click", draw);
+    loadPendingPaliers();
+  </script>
+</body>
+</html>
