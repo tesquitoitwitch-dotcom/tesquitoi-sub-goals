@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { handleEventSubEvent } from "./eventHandlers.js";
+import { syncSubscriberCount } from "./subscriberSync.js";
 
 function verifySignature(req, secret) {
   const messageId = req.header("Twitch-Eventsub-Message-Id");
@@ -40,7 +41,10 @@ export function twitchWebhookHandler(req, res) {
     } catch (e) {
       console.error("Erreur traitement événement:", e);
     }
-    return res.status(200).end();
+    res.status(200).end();
+    // Sync + détection de palier après avoir répondu à Twitch (pas besoin de le faire attendre)
+    syncSubscriberCount();
+    return;
   }
   res.status(400).end();
 }
