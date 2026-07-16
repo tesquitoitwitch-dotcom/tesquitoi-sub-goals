@@ -8,101 +8,159 @@
   body {
     background: transparent;
     font-family: 'Segoe UI', Arial, sans-serif;
-    color: #fff;
-    width: 900px;
-    padding: 20px;
+    color: #eafdff;
+    width: 640px;
+    padding: 10px;
   }
   .panel {
-    background: rgba(10, 8, 20, 0.82);
-    border: 2px solid #9147ff;
-    border-radius: 16px;
-    padding: 20px 24px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    background: linear-gradient(135deg, #071b1e 0%, #0a2226 100%);
+    border: 2px solid #4de3ea;
+    border-radius: 10px;
+    box-shadow: 0 0 24px rgba(77,227,234,0.35), 0 6px 20px rgba(0,0,0,0.6);
+    padding: 16px 22px;
+    position: relative;
+    overflow: hidden;
   }
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 14px;
+  .streak {
+    position: absolute;
+    height: 3px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 3px;
+    filter: blur(0.5px);
   }
+  .s1 { width: 140px; top: 10px; right: -20px; transform: rotate(-18deg); }
+  .s2 { width: 90px; bottom: 14px; left: -10px; transform: rotate(-18deg); }
+
   .title {
-    font-size: 22px;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(77,227,234,0.7);
+  }
+  .tagline {
+    text-align: center;
+    font-size: 12.5px;
     font-weight: 700;
-    color: #fff;
+    color: #ffd76a;
+    margin-top: 4px;
+    text-shadow: 0 0 8px rgba(255,215,106,0.5);
   }
-  .subtitle {
-    font-size: 13px;
-    color: #b9a3ff;
+  .startdate {
+    text-align: center;
+    font-size: 11px;
+    color: #8fd9de;
+    margin-top: 3px;
+    margin-bottom: 20px;
   }
+  .track-wrap { margin: 0 4px 30px 4px; position: relative; }
   .track {
     position: relative;
-    height: 10px;
-    background: rgba(255,255,255,0.12);
-    border-radius: 6px;
-    margin: 30px 6px 46px 6px;
+    height: 20px;
+    background: #041012;
+    border: 1px solid #2a4d50;
+    border-radius: 10px;
+    margin: 4px 12px 4px 12px;
   }
   .fill {
     position: absolute;
     top: 0; left: 0; height: 100%;
-    background: linear-gradient(90deg, #9147ff, #ff5ec4);
-    border-radius: 6px;
-    transition: width 0.6s ease;
+    background: linear-gradient(90deg, #0fa8b3, #4de3ea, #b6fbff);
+    border-radius: 10px;
+    box-shadow: 0 0 14px rgba(77,227,234,0.8);
+    transition: width 0.8s ease;
   }
-  .marker {
+  .pip {
     position: absolute;
-    top: -8px;
-    width: 26px;
-    height: 26px;
-    margin-left: -13px;
+    top: 2px;
+    width: 16px;
+    height: 16px;
+    margin-left: -8px;
     border-radius: 50%;
-    background: #2a1f45;
-    border: 3px solid #9147ff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
+    background: #0a2226;
+    border: 2px solid #2a4d50;
+    z-index: 2;
   }
-  .marker.reached {
-    background: #9147ff;
-    border-color: #ff5ec4;
+  .pip.reached {
+    background: #4de3ea;
+    border-color: #ffffff;
+    box-shadow: 0 0 10px rgba(77,227,234,0.9);
   }
-  .marker-label {
+  .pip-label {
     position: absolute;
-    top: 22px;
-    width: 130px;
-    margin-left: -65px;
-    text-align: center;
-    font-size: 11px;
-    line-height: 1.35;
-  }
-  .marker-seuil { font-weight: 700; color: #fff; }
-  .marker-lot { color: #cbb9ff; font-size: 10.5px; }
-  .marker-winner {
-    color: #ffd76a;
+    top: 24px;
+    font-size: 10px;
     font-weight: 700;
-    font-size: 11px;
-    margin-top: 2px;
+    color: #6fb8bd;
+    margin-left: -14px;
+    width: 28px;
+    text-align: center;
   }
+  .pip-label.reached { color: #ffffff; }
   .count {
+    text-align: center;
+    font-size: 14px;
+    color: #cdf6f8;
+    margin-bottom: 16px;
+  }
+  .count b { color: #ffffff; font-size: 16px; }
+  .next-goal {
+    border-top: 1px solid rgba(77,227,234,0.3);
+    padding-top: 12px;
+    text-align: center;
+  }
+  .next-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #8fd9de;
+    margin-bottom: 4px;
+    font-weight: 700;
+  }
+  .next-seuil {
+    font-size: 22px;
+    font-weight: 800;
+    color: #4de3ea;
+    text-shadow: 0 0 12px rgba(77,227,234,0.7);
+  }
+  .next-lot {
     font-size: 15px;
-    color: #fff;
+    color: #ffffff;
+    margin-top: 3px;
     font-weight: 600;
   }
+  .all-done {
+    font-size: 16px;
+    font-weight: 800;
+    color: #4de3ea;
+  }
+  .winners {
+    margin-top: 12px;
+    font-size: 11.5px;
+    color: #a9e8ec;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .winners b { color: #ffffff; }
 </style>
 </head>
 <body>
   <div class="panel">
-    <div class="header">
-      <div class="title">🎯 Objectif Abonnés</div>
-      <div class="subtitle" id="startDate">Campagne depuis le --/--/----</div>
+    <div class="streak s1"></div>
+    <div class="streak s2"></div>
+    <div class="title">🎯 OBJECTIF ABONNÉS</div>
+    <div class="tagline">🎁 Chaque abonnement (même offert) = une chance de gagner !</div>
+    <div class="startdate" id="startDate">Depuis le --/--/----</div>
+
+    <div class="track-wrap">
+      <div class="track" id="track">
+        <div class="fill" id="fill"></div>
+      </div>
     </div>
-    <div class="header">
-      <div class="count" id="progressCount">0 / 200 nouveaux abonnés</div>
-    </div>
-    <div class="track" id="track">
-      <div class="fill" id="fill"></div>
-    </div>
+    <div class="count" id="progressCount"><b>0</b> / 200 nouveaux abonnés</div>
+
+    <div class="next-goal" id="nextGoal"></div>
+    <div class="winners" id="winnersList"></div>
   </div>
 
   <script>
@@ -119,36 +177,47 @@
         const { campagne, paliers } = await res.json();
         const gagnes = Math.max(0, campagne.total_abonnes_actuel - campagne.total_abonnes_debut);
 
-        document.getElementById("startDate").textContent =
-          "Campagne depuis le " + formatDate(campagne.date_debut);
-        document.getElementById("progressCount").textContent =
-          `${gagnes} / ${FINAL_SEUIL} nouveaux abonnés`;
+        document.getElementById("startDate").textContent = "Depuis le " + formatDate(campagne.date_debut);
 
         const pct = Math.min(100, (gagnes / FINAL_SEUIL) * 100);
         document.getElementById("fill").style.width = pct + "%";
+        document.getElementById("progressCount").innerHTML = `<b>${gagnes}</b> / ${FINAL_SEUIL} nouveaux abonnés`;
 
         const track = document.getElementById("track");
-        track.querySelectorAll(".marker, .marker-label").forEach(el => el.remove());
-
+        track.querySelectorAll(".pip, .pip-label").forEach(el => el.remove());
         paliers.forEach(p => {
           const posPct = Math.min(100, (p.seuil_abonnes / FINAL_SEUIL) * 100);
 
-          const marker = document.createElement("div");
-          marker.className = "marker" + (p.atteint ? " reached" : "");
-          marker.style.left = posPct + "%";
-          marker.textContent = p.ordre;
-          track.appendChild(marker);
+          const pip = document.createElement("div");
+          pip.className = "pip" + (p.atteint ? " reached" : "");
+          pip.style.left = posPct + "%";
+          track.appendChild(pip);
 
           const label = document.createElement("div");
-          label.className = "marker-label";
+          label.className = "pip-label" + (p.atteint ? " reached" : "");
           label.style.left = posPct + "%";
-          label.innerHTML = `
-            <div class="marker-seuil">${p.seuil_abonnes}</div>
-            <div class="marker-lot">${p.lot_description}</div>
-            ${p.gagnant ? `<div class="marker-winner">🏆 ${p.gagnant}</div>` : ""}
-          `;
+          label.textContent = p.seuil_abonnes;
           track.appendChild(label);
         });
+
+        const next = paliers.find(p => !p.atteint);
+        const nextGoalEl = document.getElementById("nextGoal");
+        if (next) {
+          const restant = Math.max(0, next.seuil_abonnes - gagnes);
+          nextGoalEl.innerHTML = `
+            <div class="next-label">PROCHAIN PALIER — ${restant} ABONNÉ${restant > 1 ? "S" : ""} RESTANT${restant > 1 ? "S" : ""}</div>
+            <div class="next-seuil">${next.seuil_abonnes} abonnés</div>
+            <div class="next-lot">${next.lot_description}</div>
+          `;
+        } else {
+          nextGoalEl.innerHTML = `<div class="all-done">🏆 Tous les paliers sont atteints !</div>`;
+        }
+
+        const winners = paliers.filter(p => p.gagnant);
+        const winnersEl = document.getElementById("winnersList");
+        winnersEl.innerHTML = winners.length
+          ? winners.map(p => `Palier ${p.ordre} : <b>${p.gagnant}</b>`).join(" &nbsp;•&nbsp; ")
+          : "";
       } catch (e) {
         console.error("Erreur refresh overlay:", e);
       }
