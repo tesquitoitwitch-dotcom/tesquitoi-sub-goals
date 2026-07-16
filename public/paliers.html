@@ -89,6 +89,7 @@
   .seuil { color: #4de3ea; font-weight: 700; }
   .status-ok { color: #4de3ea; font-weight: 700; }
   .status-pending { color: #567a7d; }
+  .status-current { color: #ffd76a; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -118,15 +119,29 @@
   <script>
     async function load() {
       const res = await fetch("/api/paliers");
-      const { paliers } = await res.json();
-      document.getElementById("rows").innerHTML = paliers.map(p => `
-        <tr>
-          <td class="seuil">#${p.ordre}</td>
-          <td>${p.seuil_abonnes} abonnés</td>
-          <td>${p.lot_description}</td>
-          <td>${p.atteint ? '<span class="status-ok">✔ Atteint' + (p.gagnant ? " — 🏆 " + p.gagnant : "") + '</span>' : '<span class="status-pending">En attente</span>'}</td>
-        </tr>
-      `).join("");
+      const { campagne, paliers } = await res.json();
+      const gagnes = Math.max(0, campagne.total_abonnes_actuel - campagne.total_abonnes_debut);
+      const nextPalier = paliers.find(p => !p.atteint);
+      const nextOrdre = nextPalier ? nextPalier.ordre : null;
+
+      document.getElementById("rows").innerHTML = paliers.map(p => {
+        let statusHtml;
+        if (p.atteint) {
+          statusHtml = `<span class="status-ok">✔ Atteint${p.gagnant ? " — 🏆 " + p.gagnant : ""}</span>`;
+        } else if (p.ordre === nextOrdre) {
+          statusHtml = `<span class="status-current">${gagnes} / ${p.seuil_abonnes}</span>`;
+        } else {
+          statusHtml = `<span class="status-pending">En attente</span>`;
+        }
+        return `
+          <tr>
+            <td class="seuil">#${p.ordre}</td>
+            <td>${p.seuil_abonnes} abonnés</td>
+            <td>${p.lot_description}</td>
+            <td>${statusHtml}</td>
+          </tr>
+        `;
+      }).join("");
     }
     load();
   </script>
