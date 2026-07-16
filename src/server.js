@@ -1,12 +1,16 @@
 import express from "express";
 import { db } from "./db.js";
+import { twitchWebhookHandler } from "./webhook.js";
 
 const app = express();
 const PORT = 3000;
 
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", service: "tesquitoi-sub-goals" });
-});
+app.post("/webhooks/twitch", express.raw({ type: "*/*" }), (req, res, next) => {
+  req.rawBody = req.body.toString("utf8");
+  next();
+}, twitchWebhookHandler);
+
+app.get("/health", (req, res) => res.json({ status: "ok", service: "tesquitoi-sub-goals" }));
 
 app.get("/api/paliers", (req, res) => {
   const paliers = db.prepare("SELECT * FROM paliers ORDER BY ordre").all();
@@ -14,6 +18,4 @@ app.get("/api/paliers", (req, res) => {
   res.json({ campagne, paliers });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
