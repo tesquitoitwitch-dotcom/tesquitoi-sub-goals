@@ -12,6 +12,8 @@ app.post("/webhooks/twitch", express.raw({ type: "*/*" }), (req, res, next) => {
   next();
 }, twitchWebhookHandler);
 
+app.use(express.static("public"));
+
 app.get("/health", (req, res) => res.json({ status: "ok", service: "tesquitoi-sub-goals" }));
 
 app.get("/api/paliers", (req, res) => {
