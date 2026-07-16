@@ -1,0 +1,17 @@
+services:
+  sub-goals:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - sub-goals-data:/app/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sub-goals.rule=Host(`tesquitoi.duckdns.org`)"
+      - "traefik.http.routers.sub-goals.entrypoints=websecure"
+      - "traefik.http.routers.sub-goals.tls.certresolver=letsencrypt"
+      - "traefik.http.services.sub-goals.loadbalancer.server.port=3000"
+
+volumes:
+  sub-goals-data:
