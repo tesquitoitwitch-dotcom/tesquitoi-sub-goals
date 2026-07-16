@@ -52,11 +52,20 @@ CREATE TABLE IF NOT EXISTS oauth_tokens (
 );
 `);
 
-// Migration : ajout de la colonne total_abonnes_debut si elle n'existe pas encore
-const columns = db.prepare("PRAGMA table_info(campagne)").all();
-if (!columns.some(c => c.name === "total_abonnes_debut")) {
+const campagneCols = db.prepare("PRAGMA table_info(campagne)").all();
+if (!campagneCols.some(c => c.name === "total_abonnes_debut")) {
   db.exec("ALTER TABLE campagne ADD COLUMN total_abonnes_debut INTEGER NOT NULL DEFAULT 0");
   console.log("Colonne total_abonnes_debut ajoutée");
+}
+
+const participantsCols = db.prepare("PRAGMA table_info(participants)").all();
+if (!participantsCols.some(c => c.name === "derniere_victoire_palier")) {
+  db.exec("ALTER TABLE participants ADD COLUMN derniere_victoire_palier INTEGER");
+  console.log("Colonne derniere_victoire_palier ajoutée");
+}
+if (!participantsCols.some(c => c.name === "victoire_streak")) {
+  db.exec("ALTER TABLE participants ADD COLUMN victoire_streak INTEGER NOT NULL DEFAULT 0");
+  console.log("Colonne victoire_streak ajoutée");
 }
 
 const campagneExists = db.prepare("SELECT 1 FROM campagne WHERE id = 1").get();
