@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Giveaway en cours</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #071b1e;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #eafdff;
+    padding: 30px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 27px;
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(77,227,234,0.7);
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #ffd76a;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .subtitle2 {
+    text-align: center;
+    font-size: 13px;
+    color: #8fd9de;
+    margin-bottom: 24px;
+  }
+  .explain {
+    max-width: 700px;
+    margin: 0 auto 28px auto;
+    background: rgba(77,227,234,0.06);
+    border: 1px solid rgba(77,227,234,0.3);
+    border-radius: 10px;
+    padding: 18px 22px;
+  }
+  .explain h2 {
+    font-size: 15px;
+    color: #4de3ea;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+  }
+  .explain ul {
+    list-style: none;
+    padding: 0;
+  }
+  .explain li {
+    font-size: 13.5px;
+    color: #cdf6f8;
+    margin-bottom: 7px;
+    padding-left: 18px;
+    position: relative;
+  }
+  .explain li::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: #4de3ea;
+  }
+  .explain .discord-note {
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: #8fd9de;
+    font-style: italic;
+  }
+  table {
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    border-collapse: collapse;
+  }
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(77,227,234,0.25);
+  }
+  th {
+    color: #8fd9de;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  td { font-size: 15px; }
+  .seuil { color: #4de3ea; font-weight: 700; }
+  .status-ok { color: #4de3ea; font-weight: 700; }
+  .status-pending { color: #567a7d; }
+</style>
+</head>
+<body>
+  <h1>🎁 GIVEAWAY EN COURS</h1>
+  <div class="subtitle">Abonne-toi (ou offre un abonnement) pour tenter ta chance !</div>
+  <div class="subtitle2">Objectif final : Diablo IV — Lord of Hatred Ultimate Edition 🏆</div>
+
+  <div class="explain">
+    <h2>💡 COMMENT PARTICIPER ?</h2>
+    <ul>
+      <li>Chaque abonnement (ou resub) te donne un billet de participation</li>
+      <li>Tu offres des abonnements à d'autres ? Encore mieux : ça te donne aussi des billets, et plus tu en offres d'un coup, plus c'est avantageux</li>
+      <li>À chaque palier atteint, on tire au sort un(e) gagnant(e) parmi tous les participants</li>
+      <li>Les abonnés les plus fidèles ont plus de chances à chaque tirage — rester actif dans la durée, ça paie</li>
+      <li>On privilégie les nouveaux visages à chaque tirage, pour qu'un maximum de monde reparte avec un lot</li>
+    </ul>
+    <div class="discord-note">📋 Règlement complet et détails du calcul des billets disponibles sur notre Discord.</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Palier</th><th>Objectif</th><th>Lot</th><th>Statut</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <script>
+    async function load() {
+      const res = await fetch("/api/paliers");
+      const { paliers } = await res.json();
+      document.getElementById("rows").innerHTML = paliers.map(p => `
+        <tr>
+          <td class="seuil">#${p.ordre}</td>
+          <td>${p.seuil_abonnes} abonnés</td>
+          <td>${p.lot_description}</td>
+          <td>${p.atteint ? '<span class="status-ok">✔ Atteint' + (p.gagnant ? " — 🏆 " + p.gagnant : "") + '</span>' : '<span class="status-pending">En attente</span>'}</td>
+        </tr>
+      `).join("");
+    }
+    load();
+  </script>
+</body>
+</html>
