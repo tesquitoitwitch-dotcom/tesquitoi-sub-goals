@@ -3,7 +3,7 @@ import { db } from "./db.js";
 import { twitchWebhookHandler } from "./webhook.js";
 import { syncSubscriberCount, resetCampaign } from "./subscriberSync.js";
 import { computeEffectiveTickets } from "./decay.js";
-import { getCandidates, performDraw } from "./draw.js";
+import { getCandidates, performDraw, getPalierDrawStatus } from "./draw.js";
 
 const app = express();
 const PORT = 3000;
@@ -21,12 +21,20 @@ app.get("/health", (req, res) => res.json({ status: "ok", service: "tesquitoi-su
 app.get("/api/paliers", (req, res) => {
   const paliers = db.prepare("SELECT * FROM paliers ORDER BY ordre").all();
   const campagne = db.prepare("SELECT * FROM campagne WHERE id = 1").get();
-  res.json({ campagne, paliers });
+  const paliersAvecGagnants = paliers.map(p => {
+    const winners = db.prepare("SELECT twitch_username FROM palier_gagnants WHERE palier_ordre = ?").all(p.ordre).map(r => r.twitch_username);
+    return { ...p, gagnants: winners };
+  });
+  res.json({ campagne, paliers: paliersAvecGagnants });
 });
 
 app.get("/api/paliers/pending", (req, res) => {
-  const paliers = db.prepare("SELECT * FROM paliers WHERE atteint = 1 AND gagnant IS NULL ORDER BY ordre").all();
-  res.json({ paliers });
+  // "En attente de tirage" = atteint, mais pas tous les gagnants tirés
+  const paliers = db.prepare("SELECT * FROM paliers WHERE atteint = 1 ORDER BY ordre").all();
+  const pending = paliers
+    .map(p => ({ ...p, status: getPalierDrawStatus(p.ordre) }))
+    .filter(p => p.status.restants > 0);
+  res.json({ paliers: pending });
 });
 
 app.get("/api/participants", (req, res) => {
@@ -42,13 +50,14 @@ app.get("/api/participants", (req, res) => {
   res.json({ currentPalier, participants: enrichis });
 });
 
-app.get("/api/candidates", (req, res) => {
-  const { pool } = getCandidates();
+app.get("/api/candidates/:ordre", (req, res) => {
+  const status = getPalierDrawStatus(Number(req.params.ordre));
+  const { pool } = getCandidates(status.gagnantsDejaTires);
   const total = pool.reduce((s, p) => s + p.weight, 0);
   const withOdds = pool
     .map(p => ({ ...p, probabilite_pct: total > 0 ? Math.round((p.weight / total) * 1000) / 10 : 0 }))
     .sort((a, b) => b.weight - a.weight);
-  res.json({ pool: withOdds, total });
+  res.json({ pool: withOdds, total, status });
 });
 
 app.post("/api/paliers/:ordre/draw", (req, res) => {

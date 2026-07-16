@@ -50,22 +50,32 @@ CREATE TABLE IF NOT EXISTS oauth_tokens (
   refresh_token TEXT NOT NULL,
   expires_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS palier_gagnants (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  palier_ordre INTEGER NOT NULL,
+  twitch_username TEXT NOT NULL,
+  date_tirage TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
 
 const campagneCols = db.prepare("PRAGMA table_info(campagne)").all();
 if (!campagneCols.some(c => c.name === "total_abonnes_debut")) {
   db.exec("ALTER TABLE campagne ADD COLUMN total_abonnes_debut INTEGER NOT NULL DEFAULT 0");
-  console.log("Colonne total_abonnes_debut ajoutée");
 }
 
 const participantsCols = db.prepare("PRAGMA table_info(participants)").all();
 if (!participantsCols.some(c => c.name === "derniere_victoire_palier")) {
   db.exec("ALTER TABLE participants ADD COLUMN derniere_victoire_palier INTEGER");
-  console.log("Colonne derniere_victoire_palier ajoutée");
 }
 if (!participantsCols.some(c => c.name === "victoire_streak")) {
   db.exec("ALTER TABLE participants ADD COLUMN victoire_streak INTEGER NOT NULL DEFAULT 0");
-  console.log("Colonne victoire_streak ajoutée");
+}
+
+const paliersCols = db.prepare("PRAGMA table_info(paliers)").all();
+if (!paliersCols.some(c => c.name === "nombre_gagnants")) {
+  db.exec("ALTER TABLE paliers ADD COLUMN nombre_gagnants INTEGER NOT NULL DEFAULT 1");
+  console.log("Colonne nombre_gagnants ajoutée");
 }
 
 const campagneExists = db.prepare("SELECT 1 FROM campagne WHERE id = 1").get();
@@ -76,23 +86,26 @@ if (!campagneExists) {
 const paliersExist = db.prepare("SELECT COUNT(*) as c FROM paliers").get();
 if (paliersExist.c === 0) {
   const insert = db.prepare(`
-    INSERT INTO paliers (ordre, seuil_abonnes, lot_description, cout_estime_eur)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO paliers (ordre, seuil_abonnes, lot_description, cout_estime_eur, nombre_gagnants)
+    VALUES (?, ?, ?, ?, ?)
   `);
   const seed = db.transaction((paliers) => {
     for (const p of paliers) insert.run(...p);
   });
   seed([
-    [1, 15, "5€ crédit Battle.net", 5],
-    [2, 25, "10€ crédit Battle.net", 10],
-    [3, 40, "15€ crédit Battle.net", 15],
-    [4, 60, "10€ crédit Battle.net x2 (2 gagnants)", 20],
-    [5, 85, "25€ crédit Battle.net", 25],
-    [6, 115, "35€ crédit Battle.net", 35],
-    [7, 150, "Diablo IV standalone (~45€)", 45],
-    [8, 200, "Diablo IV: Lord of Hatred - Ultimate Edition (~90€)", 90],
+    [1, 15, "5€ crédit Battle.net", 5, 1],
+    [2, 25, "10€ crédit Battle.net", 10, 1],
+    [3, 40, "15€ crédit Battle.net", 15, 1],
+    [4, 60, "10€ crédit Battle.net x2 (2 gagnants)", 20, 2],
+    [5, 85, "25€ crédit Battle.net", 25, 1],
+    [6, 115, "35€ crédit Battle.net", 35, 1],
+    [7, 150, "Diablo IV standalone (~45€)", 45, 1],
+    [8, 200, "Diablo IV: Lord of Hatred - Ultimate Edition (~90€)", 90, 1],
   ]);
   console.log("8 paliers initialisés");
+} else {
+  // Corrige le palier 4 si la base existait déjà avant l'ajout de nombre_gagnants
+  db.prepare("UPDATE paliers SET nombre_gagnants = 2 WHERE ordre = 4 AND nombre_gagnants != 2").run();
 }
 
 const tokensExist = db.prepare("SELECT 1 FROM oauth_tokens WHERE id = 1").get();
@@ -101,7 +114,6 @@ if (!tokensExist && process.env.TWITCH_USER_ACCESS_TOKEN && process.env.TWITCH_U
     INSERT INTO oauth_tokens (id, access_token, refresh_token, expires_at)
     VALUES (1, ?, ?, '1970-01-01T00:00:00Z')
   `).run(process.env.TWITCH_USER_ACCESS_TOKEN, process.env.TWITCH_USER_REFRESH_TOKEN);
-  console.log("Tokens OAuth migrés du .env vers la base");
 }
 
 export default db;
