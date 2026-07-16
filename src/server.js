@@ -1,7 +1,7 @@
 import express from "express";
 import { db } from "./db.js";
 import { twitchWebhookHandler } from "./webhook.js";
-import { syncSubscriberCount } from "./subscriberSync.js";
+import { syncSubscriberCount, resetCampaign } from "./subscriberSync.js";
 import { computeEffectiveTickets } from "./decay.js";
 
 const app = express();
@@ -32,10 +32,14 @@ app.get("/api/participants", (req, res) => {
   res.json({ currentPalier, participants: enrichis });
 });
 
-// Endpoint manuel pour forcer une resync (utile pour tester sans attendre un vrai event)
 app.post("/api/sync", async (req, res) => {
   const result = await syncSubscriberCount();
   res.json(result || { error: "sync failed, check logs" });
+});
+
+app.post("/api/campagne/reset", async (req, res) => {
+  const result = await resetCampaign();
+  res.json(result);
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

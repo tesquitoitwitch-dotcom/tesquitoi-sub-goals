@@ -52,9 +52,16 @@ CREATE TABLE IF NOT EXISTS oauth_tokens (
 );
 `);
 
+// Migration : ajout de la colonne total_abonnes_debut si elle n'existe pas encore
+const columns = db.prepare("PRAGMA table_info(campagne)").all();
+if (!columns.some(c => c.name === "total_abonnes_debut")) {
+  db.exec("ALTER TABLE campagne ADD COLUMN total_abonnes_debut INTEGER NOT NULL DEFAULT 0");
+  console.log("Colonne total_abonnes_debut ajoutée");
+}
+
 const campagneExists = db.prepare("SELECT 1 FROM campagne WHERE id = 1").get();
 if (!campagneExists) {
-  db.prepare("INSERT INTO campagne (id, date_debut, total_abonnes_actuel) VALUES (1, datetime('now'), 0)").run();
+  db.prepare("INSERT INTO campagne (id, date_debut, total_abonnes_actuel, total_abonnes_debut) VALUES (1, datetime('now'), 0, 0)").run();
 }
 
 const paliersExist = db.prepare("SELECT COUNT(*) as c FROM paliers").get();
@@ -79,15 +86,13 @@ if (paliersExist.c === 0) {
   console.log("8 paliers initialisés");
 }
 
-// Migration unique : on récupère les tokens du .env (générés lors du flow OAuth manuel)
-// et on les met en base pour que l'appli gère le refresh toute seule ensuite.
 const tokensExist = db.prepare("SELECT 1 FROM oauth_tokens WHERE id = 1").get();
 if (!tokensExist && process.env.TWITCH_USER_ACCESS_TOKEN && process.env.TWITCH_USER_REFRESH_TOKEN) {
   db.prepare(`
     INSERT INTO oauth_tokens (id, access_token, refresh_token, expires_at)
     VALUES (1, ?, ?, '1970-01-01T00:00:00Z')
   `).run(process.env.TWITCH_USER_ACCESS_TOKEN, process.env.TWITCH_USER_REFRESH_TOKEN);
-  console.log("Tokens OAuth migrés du .env vers la base (expiration forcée pour déclencher un refresh immédiat)");
+  console.log("Tokens OAuth migrés du .env vers la base");
 }
 
 export default db;
