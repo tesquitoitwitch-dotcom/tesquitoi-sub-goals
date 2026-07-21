@@ -120,7 +120,7 @@
     async function load() {
       const res = await fetch("/api/paliers");
       const { campagne, paliers } = await res.json();
-      const gagnes = Math.max(0, campagne.total_abonnes_actuel - campagne.total_abonnes_debut);
+      const gagnes = campagne.abonnements_comptabilises;
       const nextPalier = paliers.find(p => !p.atteint);
       const nextOrdre = nextPalier ? nextPalier.ordre : null;
 

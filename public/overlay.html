@@ -175,7 +175,7 @@
       try {
         const res = await fetch("/api/paliers");
         const { campagne, paliers } = await res.json();
-        const gagnes = Math.max(0, campagne.total_abonnes_actuel - campagne.total_abonnes_debut);
+        const gagnes = campagne.abonnements_comptabilises;
 
         document.getElementById("startDate").textContent = "Depuis le " + formatDate(campagne.date_debut);
 
