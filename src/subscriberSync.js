@@ -27,45 +27,31 @@ export async function getTotalSubscriberCount() {
   return data.total;
 }
 
-export function checkPaliersFranchis(abonnesGagnes) {
-  const nouveaux = db.prepare(`
-    SELECT * FROM paliers WHERE atteint = 0 AND seuil_abonnes <= ? ORDER BY ordre
-  `).all(abonnesGagnes);
-
-  for (const p of nouveaux) {
-    db.prepare(`UPDATE paliers SET atteint = 1 WHERE id = ?`).run(p.id);
-    console.log(`🎉 Palier ${p.ordre} atteint ! (+${p.seuil_abonnes} nouveaux abonnés) - Lot: ${p.lot_description}`);
-  }
-  return nouveaux;
-}
-
+// Conservé uniquement à titre informatif (afficher le vrai total d'abonnés Twitch quelque part si besoin),
+// n'affecte plus la progression des paliers, qui dépend désormais de campagne.abonnements_comptabilises.
 export async function syncSubscriberCount() {
   try {
     const total = await getTotalSubscriberCount();
-    const campagne = db.prepare("SELECT total_abonnes_debut FROM campagne WHERE id = 1").get();
-    const abonnesGagnes = Math.max(0, total - campagne.total_abonnes_debut);
-
     db.prepare(`UPDATE campagne SET total_abonnes_actuel = ? WHERE id = 1`).run(total);
-    const nouveaux = checkPaliersFranchis(abonnesGagnes);
-    if (nouveaux.length > 0) {
-      console.log(`Nouveaux paliers franchis: ${nouveaux.map(p => p.ordre).join(", ")}`);
-    }
-    return { total, abonnesGagnes, nouveauxPaliers: nouveaux };
+    return { total };
   } catch (e) {
     console.error("Erreur sync abonnés:", e.message);
     return null;
   }
 }
 
-// Repart sur une base propre : fige le total actuel comme référence,
-// réinitialise la date de début et tous les paliers (sans toucher aux tickets déjà gagnés).
 export async function resetCampaign() {
-  const total = await getTotalSubscriberCount();
+  const total = await getTotalSubscriberCount().catch(() => null);
   db.prepare(`
-    UPDATE campagne SET date_debut = datetime('now'), total_abonnes_debut = ?, total_abonnes_actuel = ?
+    UPDATE campagne
+    SET date_debut = datetime('now'),
+        total_abonnes_debut = COALESCE(?, total_abonnes_debut),
+        total_abonnes_actuel = COALESCE(?, total_abonnes_actuel),
+        abonnements_comptabilises = 0
     WHERE id = 1
   `).run(total, total);
   db.prepare(`UPDATE paliers SET atteint = 0, gagnant = NULL, date_tirage = NULL`).run();
-  console.log(`Campagne réinitialisée : baseline = ${total} abonnés`);
-  return { total_abonnes_debut: total };
+  db.prepare(`DELETE FROM palier_gagnants`).run();
+  console.log(`Campagne réinitialisée : compteur de progression remis à 0`);
+  return { abonnements_comptabilises: 0 };
 }

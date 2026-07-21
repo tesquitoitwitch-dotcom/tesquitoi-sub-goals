@@ -63,6 +63,25 @@ const campagneCols = db.prepare("PRAGMA table_info(campagne)").all();
 if (!campagneCols.some(c => c.name === "total_abonnes_debut")) {
   db.exec("ALTER TABLE campagne ADD COLUMN total_abonnes_debut INTEGER NOT NULL DEFAULT 0");
 }
+if (!campagneCols.some(c => c.name === "abonnements_comptabilises")) {
+  db.exec("ALTER TABLE campagne ADD COLUMN abonnements_comptabilises INTEGER NOT NULL DEFAULT 0");
+  console.log("Colonne abonnements_comptabilises ajoutée");
+
+  // Backfill : recalcule le compteur depuis l'historique déjà en base,
+  // pour que les contributions déjà reçues (ex: gift de labidouillle) soient comptées retroactivement.
+  const rows = db.prepare("SELECT type FROM tickets_ledger").all();
+  let total = 0;
+  for (const row of rows) {
+    if (row.type === "sub") {
+      total += 1;
+    } else if (row.type.startsWith("gift_x")) {
+      const n = parseInt(row.type.replace("gift_x", ""), 10);
+      if (!isNaN(n)) total += n;
+    }
+  }
+  db.prepare("UPDATE campagne SET abonnements_comptabilises = ? WHERE id = 1").run(total);
+  console.log(`Backfill : ${total} abonnements comptabilisés rétroactivement depuis l'historique`);
+}
 
 const participantsCols = db.prepare("PRAGMA table_info(participants)").all();
 if (!participantsCols.some(c => c.name === "derniere_victoire_palier")) {
@@ -75,12 +94,11 @@ if (!participantsCols.some(c => c.name === "victoire_streak")) {
 const paliersCols = db.prepare("PRAGMA table_info(paliers)").all();
 if (!paliersCols.some(c => c.name === "nombre_gagnants")) {
   db.exec("ALTER TABLE paliers ADD COLUMN nombre_gagnants INTEGER NOT NULL DEFAULT 1");
-  console.log("Colonne nombre_gagnants ajoutée");
 }
 
 const campagneExists = db.prepare("SELECT 1 FROM campagne WHERE id = 1").get();
 if (!campagneExists) {
-  db.prepare("INSERT INTO campagne (id, date_debut, total_abonnes_actuel, total_abonnes_debut) VALUES (1, datetime('now'), 0, 0)").run();
+  db.prepare("INSERT INTO campagne (id, date_debut, total_abonnes_actuel, total_abonnes_debut, abonnements_comptabilises) VALUES (1, datetime('now'), 0, 0, 0)").run();
 }
 
 const paliersExist = db.prepare("SELECT COUNT(*) as c FROM paliers").get();
@@ -104,7 +122,6 @@ if (paliersExist.c === 0) {
   ]);
   console.log("8 paliers initialisés");
 } else {
-  // Corrige le palier 4 si la base existait déjà avant l'ajout de nombre_gagnants
   db.prepare("UPDATE paliers SET nombre_gagnants = 2 WHERE ordre = 4 AND nombre_gagnants != 2").run();
 }
 

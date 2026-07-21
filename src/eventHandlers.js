@@ -14,7 +14,19 @@ function getCurrentPalierOrdre() {
   return row.ordre || 0;
 }
 
-function addTickets(username, eventId, type, tickets) {
+function checkPaliersFranchis(abonnesComptabilises) {
+  const nouveaux = db.prepare(`
+    SELECT * FROM paliers WHERE atteint = 0 AND seuil_abonnes <= ? ORDER BY ordre
+  `).all(abonnesComptabilises);
+
+  for (const p of nouveaux) {
+    db.prepare(`UPDATE paliers SET atteint = 1 WHERE id = ?`).run(p.id);
+    console.log(`🎉 Palier ${p.ordre} atteint ! (${p.seuil_abonnes} contributions) - Lot: ${p.lot_description}`);
+  }
+  return nouveaux;
+}
+
+function addTickets(username, eventId, type, tickets, rawSubCount) {
   if (tickets <= 0) return false;
   upsertParticipant(username);
   const palier = getCurrentPalierOrdre();
@@ -35,6 +47,13 @@ function addTickets(username, eventId, type, tickets) {
     SET tickets_bruts_total = tickets_bruts_total + ?, dernier_palier_actif = ?, updated_at = datetime('now')
     WHERE twitch_username = ?
   `).run(tickets, palier, username);
+
+  // Le compteur de progression avance du nombre RÉEL d'abonnements (1 pour un sub, N pour un gift x N),
+  // jamais affecté par des désabonnements ailleurs sur la chaîne.
+  db.prepare(`UPDATE campagne SET abonnements_comptabilises = abonnements_comptabilises + ? WHERE id = 1`).run(rawSubCount);
+  const newTotal = db.prepare(`SELECT abonnements_comptabilises FROM campagne WHERE id = 1`).get().abonnements_comptabilises;
+  checkPaliersFranchis(newTotal);
+
   return true;
 }
 
@@ -45,14 +64,14 @@ export function handleEventSubEvent(subscriptionType, eventId, event) {
         console.log(`Sub gift reçu par ${event.user_login} (déjà compté côté gifter)`);
         return;
       }
-      addTickets(event.user_login, eventId, "sub", 1);
+      addTickets(event.user_login, eventId, "sub", 1, 1);
       break;
     case "channel.subscription.gift":
       if (event.is_anonymous) {
         console.log("Gift anonyme, impossible d'attribuer des tickets");
         return;
       }
-      addTickets(event.user_login, eventId, `gift_x${event.total}`, computeGiftTickets(event.total));
+      addTickets(event.user_login, eventId, `gift_x${event.total}`, computeGiftTickets(event.total), event.total);
       break;
     default:
       console.log(`Type d'événement non géré : ${subscriptionType}`);
